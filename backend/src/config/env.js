@@ -35,5 +35,6 @@ module.exports = {
 
   bookingHoldMinutes: Number(process.env.BOOKING_HOLD_MINUTES || 5),
   notificationMaxRetries: Number(process.env.NOTIFICATION_MAX_RETRIES || 5),
+  notificationPollCron: process.env.NOTIFICATION_POLL_CRON || '*/1 * * * *',
   reminderPollCron: process.env.REMINDER_POLL_CRON || '*/5 * * * *',
 };
