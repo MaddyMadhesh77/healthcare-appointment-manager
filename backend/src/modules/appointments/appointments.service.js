@@ -142,6 +142,18 @@ async function confirmAppointment(patientId, appointmentId, { symptoms }) {
       recipientId: doctorProfile.userId,
       payload: { template: 'booking_confirmation_doctor', appointmentId: appt.id, slotStart: confirmed.slotStart },
     });
+    await queueNotification(tx, {
+      type: 'CALENDAR',
+      appointmentId: appt.id,
+      recipientId: patientId,
+      payload: { action: 'create', appointmentId: appt.id },
+    });
+    await queueNotification(tx, {
+      type: 'CALENDAR',
+      appointmentId: appt.id,
+      recipientId: doctorProfile.userId,
+      payload: { action: 'create', appointmentId: appt.id },
+    });
     return { appointment: confirmed, symptomForm: form };
   });
 
@@ -203,6 +215,18 @@ async function cancelAppointment(user, appointmentId) {
         appointmentId: appt.id,
         recipientId: doctorProfile.userId,
         payload: { template: 'appointment_cancelled', appointmentId: appt.id, slotStart: appt.slotStart },
+      });
+      await queueNotification(tx, {
+        type: 'CALENDAR',
+        appointmentId: appt.id,
+        recipientId: appt.patientId,
+        payload: { action: 'delete', appointmentId: appt.id },
+      });
+      await queueNotification(tx, {
+        type: 'CALENDAR',
+        appointmentId: appt.id,
+        recipientId: doctorProfile.userId,
+        payload: { action: 'delete', appointmentId: appt.id },
       });
     }
     return cancelled;

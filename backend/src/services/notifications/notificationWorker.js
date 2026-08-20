@@ -2,6 +2,7 @@ const prisma = require('../../config/db');
 const env = require('../../config/env');
 const { sendEmail } = require('../email/email.service');
 const { TEMPLATES } = require('../email/templates');
+const { syncCalendarEvent } = require('../googleCalendar/calendarSync');
 
 async function buildEmail(row) {
   const recipient = await prisma.user.findUnique({ where: { id: row.recipientId } });
@@ -26,14 +27,24 @@ async function buildEmail(row) {
   return { to: recipient.email, subject, text };
 }
 
-// Every send goes through this single path, whether it's a booking
-// confirmation, a leave cancellation, or a medication reminder — so one
-// retry/backoff mechanism covers all notification types instead of each
-// caller re-implementing its own.
+async function processOne(row) {
+  if (row.type === 'EMAIL') {
+    const email = await buildEmail(row);
+    await sendEmail(email);
+    return;
+  }
+  // CALENDAR: a user who hasn't connected Google Calendar is a no-op, not
+  // a failure — we still mark the row SENT so it isn't retried forever.
+  await syncCalendarEvent(row);
+}
+
+// Every notification — booking confirmation, cancellation, leave
+// cancellation, medication reminder, calendar create/update/delete — goes
+// through this single queue-and-poll path, so one retry mechanism covers
+// all of them instead of each caller reimplementing its own.
 async function processPendingNotifications(batchSize = 20) {
   const rows = await prisma.notificationLog.findMany({
     where: {
-      type: 'EMAIL',
       status: { in: ['PENDING', 'FAILED'] },
       retryCount: { lt: env.notificationMaxRetries },
     },
@@ -44,8 +55,7 @@ async function processPendingNotifications(batchSize = 20) {
   let sent = 0;
   for (const row of rows) {
     try {
-      const email = await buildEmail(row);
-      await sendEmail(email);
+      await processOne(row);
       await prisma.notificationLog.update({ where: { id: row.id }, data: { status: 'SENT' } });
       sent += 1;
     } catch (err) {

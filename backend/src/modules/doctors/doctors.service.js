@@ -115,6 +115,18 @@ async function addLeave(doctorId, { date, reason }) {
           reason: reason || 'Doctor unavailable',
         },
       });
+      await queueNotification(tx, {
+        type: 'CALENDAR',
+        appointmentId: appt.id,
+        recipientId: appt.patientId,
+        payload: { action: 'delete', appointmentId: appt.id },
+      });
+      await queueNotification(tx, {
+        type: 'CALENDAR',
+        appointmentId: appt.id,
+        recipientId: profile.userId,
+        payload: { action: 'delete', appointmentId: appt.id },
+      });
     }
 
     return { leave, cancelledCount: affected.length };
