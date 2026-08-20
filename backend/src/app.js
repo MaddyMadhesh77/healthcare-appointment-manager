@@ -4,6 +4,7 @@ const env = require('./config/env');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const authRoutes = require('./modules/auth/auth.routes');
+const { adminRouter: adminDoctorsRoutes, publicRouter: doctorsRoutes } = require('./modules/doctors/doctors.routes');
 
 const app = express();
 
@@ -13,6 +14,8 @@ app.use(express.json());
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin/doctors', adminDoctorsRoutes);
+app.use('/api/doctors', doctorsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
