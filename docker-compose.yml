@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hca
+      POSTGRES_PASSWORD: hca_dev_password
+      POSTGRES_DB: hca
+    ports:
+      - "5544:5432"
+    volumes:
+      - hca_pgdata:/var/lib/postgresql/data
+
+volumes:
+  hca_pgdata:
