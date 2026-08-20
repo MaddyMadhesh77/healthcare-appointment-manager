@@ -3,6 +3,7 @@ const prisma = require('../../config/db');
 const { AppError } = require('../../middleware/errorHandler');
 const { SALT_ROUNDS } = require('../auth/auth.service');
 const { queueNotification } = require('../../services/notifications/notificationQueue');
+const { dayBoundsUtc } = require('../../utils/date');
 
 function toPublicDoctor(profile) {
   return {
@@ -66,12 +67,6 @@ async function updateDoctor(id, updates) {
   return toPublicDoctor(updated);
 }
 
-function dayBounds(dateStr) {
-  const start = new Date(`${dateStr}T00:00:00.000Z`);
-  const end = new Date(`${dateStr}T23:59:59.999Z`);
-  return { start, end };
-}
-
 // Marking a doctor on leave for a date cancels any HELD/CONFIRMED appointments
 // that day and queues a cancellation notification for each affected patient,
 // all inside one transaction so a leave is never recorded without its
@@ -89,7 +84,7 @@ async function addLeave(doctorId, { date, reason }) {
     throw new AppError(409, 'Leave already recorded for this date');
   }
 
-  const { start, end } = dayBounds(date);
+  const { start, end } = dayBoundsUtc(date);
 
   const result = await prisma.$transaction(async (tx) => {
     const leave = await tx.doctorLeave.create({
