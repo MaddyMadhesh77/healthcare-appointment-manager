@@ -2,6 +2,7 @@ const prisma = require('../../config/db');
 const env = require('../../config/env');
 const { AppError } = require('../../middleware/errorHandler');
 const { queueNotification } = require('../../services/notifications/notificationQueue');
+const llmService = require('../../services/llm/llm.service');
 const { dayBoundsUtc } = require('../../utils/date');
 const { generateSlotsForDay } = require('./slotGenerator');
 
@@ -121,12 +122,12 @@ async function confirmAppointment(patientId, appointmentId, { symptoms }) {
 
   const doctorProfile = await prisma.doctorProfile.findUnique({ where: { id: appt.doctorId } });
 
-  return prisma.$transaction(async (tx) => {
+  const { appointment, symptomForm } = await prisma.$transaction(async (tx) => {
     const confirmed = await tx.appointment.update({
       where: { id: appt.id },
       data: { status: 'CONFIRMED', holdExpiresAt: null },
     });
-    const symptomForm = await tx.symptomForm.create({
+    const form = await tx.symptomForm.create({
       data: { appointmentId: appt.id, rawSymptoms: symptoms, llmStatus: 'PENDING' },
     });
     await queueNotification(tx, {
@@ -141,8 +142,34 @@ async function confirmAppointment(patientId, appointmentId, { symptoms }) {
       recipientId: doctorProfile.userId,
       payload: { template: 'booking_confirmation_doctor', appointmentId: appt.id, slotStart: confirmed.slotStart },
     });
-    return { appointment: confirmed, symptomForm };
+    return { appointment: confirmed, symptomForm: form };
   });
+
+  // Runs after the booking transaction commits: a slow or failing LLM call
+  // must never hold the DB transaction open or block the booking itself.
+  // On failure the form is left with llmStatus FAILED and null summary
+  // fields; the doctor UI falls back to showing the raw symptoms.
+  let finalSymptomForm = symptomForm;
+  try {
+    const summary = await llmService.generatePreVisitSummary(symptoms);
+    finalSymptomForm = await prisma.symptomForm.update({
+      where: { id: symptomForm.id },
+      data: {
+        urgency: summary.urgency,
+        chiefComplaint: summary.chiefComplaint,
+        suggestedQuestions: summary.suggestedQuestions,
+        llmStatus: 'OK',
+      },
+    });
+  } catch (err) {
+    console.error('Pre-visit LLM summary failed:', err.message);
+    finalSymptomForm = await prisma.symptomForm.update({
+      where: { id: symptomForm.id },
+      data: { llmStatus: 'FAILED' },
+    });
+  }
+
+  return { appointment, symptomForm: finalSymptomForm };
 }
 
 async function cancelAppointment(user, appointmentId) {
