@@ -138,5 +138,5 @@ All endpoints are under `/api` and require `Authorization: Bearer <token>` excep
 
 ## Deployment
 
-- **Backend**: any Node host with a Postgres add-on (Render, Railway, Fly.io). Set the env vars above, run `npm run prisma:migrate` (or `npx prisma migrate deploy`) once against the production DB, then `npm start`.
-- **Frontend**: any static host (Vercel, Netlify, Render static site). Set `VITE_API_URL` to the deployed backend's URL and run `npm run build`; deploy the `dist/` output.
+- **Backend**: `render.yaml` at the repo root is a Render blueprint (Node web service + free Postgres, runs `prisma migrate deploy` on start). Any other Node host with a Postgres add-on (Railway, Fly.io) works the same way: set the env vars above, run `npx prisma migrate deploy` once against the production DB, then `npm start`.
+- **Frontend**: `frontend/vercel.json` adds the SPA rewrite Vercel needs for client-side routing. Any static host (Vercel, Netlify, Render static site) works — set `VITE_API_URL` to the deployed backend's URL and run `npm run build`; deploy the `dist/` output.
