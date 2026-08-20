@@ -139,7 +139,10 @@ model MedicationReminder {
   visitNoteId    String
   visitNote      VisitNote      @relation(fields: [visitNoteId], references: [id], onDelete: Cascade)
   medicationName String
-  frequency      String
+  dosage         String
+  frequencyLabel String
+  intervalHours  Float
+  remainingDoses Int
   nextSendAt     DateTime
   status         ReminderStatus @default(SCHEDULED)
 
