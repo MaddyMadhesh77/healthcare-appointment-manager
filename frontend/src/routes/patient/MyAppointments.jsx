@@ -15,6 +15,7 @@ function VisitSummary({ appointmentId }) {
   if (error) return null;
   if (!visit) return <p className="muted">Loading summary…</p>;
 
+
   if (visit.llmStatus !== 'OK' || !visit.patientSummary) {
     return <p className="muted">Post-visit summary unavailable right now. Doctor's notes are on file.</p>;
   }
@@ -77,23 +78,30 @@ export function MyAppointments() {
     <div>
       <h1>My appointments</h1>
       {error && <p className="error">{error}</p>}
-      {appointments.length === 0 && <p className="muted">No appointments yet.</p>}
+      {appointments.length === 0 && <p className="empty-state">No appointments yet — book one to get started.</p>}
       <ul className="list">
         {appointments.map((a) => (
           <li key={a.id} className="card">
-            <p>
-              <strong>{a.doctor.user.name}</strong> ({a.doctor.specialisation})
-            </p>
-            <p>{new Date(a.slotStart).toLocaleString()}</p>
-            <p>
-              Status: <span className={`status status-${a.status.toLowerCase()}`}>{a.status}</span>
-            </p>
-            {['HELD', 'CONFIRMED'].includes(a.status) && <button onClick={() => handleCancel(a.id)}>Cancel</button>}
-            {a.status === 'COMPLETED' && (
-              <button onClick={() => setExpanded(expanded === a.id ? null : a.id)}>
-                {expanded === a.id ? 'Hide summary' : 'View visit summary'}
-              </button>
-            )}
+            <div className="appt-card-header">
+              <div>
+                <strong>{a.doctor.user.name}</strong>
+                <span className="muted"> · {a.doctor.specialisation}</span>
+              </div>
+              <span className={`status status-${a.status.toLowerCase()}`}>{a.status.replace(/_/g, ' ')}</span>
+            </div>
+            <p className="muted">{new Date(a.slotStart).toLocaleString()}</p>
+            <div className="card-actions">
+              {['HELD', 'CONFIRMED'].includes(a.status) && (
+                <button className="btn-danger" onClick={() => handleCancel(a.id)}>
+                  Cancel
+                </button>
+              )}
+              {a.status === 'COMPLETED' && (
+                <button className="btn-secondary" onClick={() => setExpanded(expanded === a.id ? null : a.id)}>
+                  {expanded === a.id ? 'Hide summary' : 'View visit summary'}
+                </button>
+              )}
+            </div>
             {expanded === a.id && <VisitSummary appointmentId={a.id} />}
           </li>
         ))}

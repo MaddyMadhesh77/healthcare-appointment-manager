@@ -190,14 +190,22 @@ function LeaveManager({ doctor }) {
         <input placeholder="Reason (optional)" value={reason} onChange={(e) => setReason(e.target.value)} />
         <button type="submit">Add leave day</button>
       </form>
-      <ul className="list">
-        {leaves.map((l) => (
-          <li key={l.id}>
-            {new Date(l.date).toLocaleDateString()} {l.reason && `— ${l.reason}`}
-            <button onClick={() => handleRemove(l.id)}>Remove</button>
-          </li>
-        ))}
-      </ul>
+      {leaves.length === 0 ? (
+        <p className="muted">No leave days recorded.</p>
+      ) : (
+        <ul className="list">
+          {leaves.map((l) => (
+            <li key={l.id}>
+              <span>
+                {new Date(l.date).toLocaleDateString()} {l.reason && `— ${l.reason}`}
+              </span>
+              <button className="btn-danger" onClick={() => handleRemove(l.id)}>
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -226,11 +234,14 @@ export function AdminDoctors() {
       <CreateDoctorForm onCreated={load} />
       <div className="card">
         <h2>Doctors</h2>
+        {doctors.length === 0 && <p className="empty-state">No doctors yet — add one above.</p>}
         <ul className="list">
           {doctors.map((d) => (
             <li key={d.id}>
-              {d.name} — {d.specialisation} ({d.slotDurationMinutes}min slots)
-              <button onClick={() => setLeaveDoctor(leaveDoctor?.id === d.id ? null : d)}>
+              <span>
+                <strong>{d.name}</strong> <span className="muted">— {d.specialisation} ({d.slotDurationMinutes}min slots)</span>
+              </span>
+              <button className="btn-secondary" onClick={() => setLeaveDoctor(leaveDoctor?.id === d.id ? null : d)}>
                 {leaveDoctor?.id === d.id ? 'Hide leave' : 'Manage leave'}
               </button>
             </li>

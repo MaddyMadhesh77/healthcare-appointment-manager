@@ -81,15 +81,23 @@ export function BookAppointment() {
 
   if (confirmed) {
     return (
-      <div className="card">
+      <div className="card confirmation-card">
+        <span className="confirmation-icon">✓</span>
         <h2>Appointment confirmed</h2>
-        <p>
+        <p className="muted">
           With {selectedDoctor.name} on {new Date(confirmed.appointment.slotStart).toLocaleString()}
         </p>
         {confirmed.symptomForm.llmStatus === 'OK' ? (
-          <div>
+          <div className="pre-visit-summary">
             <p>
-              <strong>Urgency:</strong> {confirmed.symptomForm.urgency}
+              Urgency:{' '}
+              <span
+                className={`urgency-badge ${
+                  { Low: 'urgency-low', Medium: 'urgency-medium', High: 'urgency-high' }[confirmed.symptomForm.urgency] || ''
+                }`}
+              >
+                {confirmed.symptomForm.urgency}
+              </span>
             </p>
             <p>
               <strong>Chief complaint:</strong> {confirmed.symptomForm.chiefComplaint}
@@ -98,7 +106,9 @@ export function BookAppointment() {
         ) : (
           <p className="muted">AI summary unavailable — your symptoms were still recorded for the doctor.</p>
         )}
-        <Link to="/patient/appointments">View my appointments</Link>
+        <Link to="/patient/appointments" className="btn-link">
+          View my appointments
+        </Link>
       </div>
     );
   }
@@ -119,15 +129,18 @@ export function BookAppointment() {
       {doctors.length > 0 && (
         <div className="card">
           <h2>Doctors</h2>
-          <ul className="list">
+          <div className="doctor-list">
             {doctors.map((d) => (
-              <li key={d.id}>
-                <button className={selectedDoctor?.id === d.id ? 'selected' : ''} onClick={() => selectDoctor(d)}>
-                  {d.name} — {d.specialisation}
-                </button>
-              </li>
+              <button
+                key={d.id}
+                className={`doctor-option ${selectedDoctor?.id === d.id ? 'selected' : ''}`}
+                onClick={() => selectDoctor(d)}
+              >
+                <span className="doctor-option-name">{d.name}</span>
+                <span className="doctor-option-spec">{d.specialisation}</span>
+              </button>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 
@@ -139,17 +152,15 @@ export function BookAppointment() {
             <input type="date" value={date} min={todayIso()} onChange={(e) => handleDateChange(e.target.value)} />
           </label>
           {slots.length === 0 ? (
-            <p className="muted">No available slots on this date.</p>
+            <p className="empty-state">No available slots on this date.</p>
           ) : (
-            <ul className="list">
+            <div className="slot-grid">
               {slots.map((s) => (
-                <li key={s.slotStart}>
-                  <button disabled={busy} onClick={() => handleHold(s)}>
-                    {new Date(s.slotStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </button>
-                </li>
+                <button key={s.slotStart} className="slot-pill" disabled={busy} onClick={() => handleHold(s)}>
+                  {new Date(s.slotStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </button>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       )}

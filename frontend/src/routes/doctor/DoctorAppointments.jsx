@@ -75,21 +75,25 @@ function VisitForm({ appointment, onSubmitted }) {
             value={m.durationDays}
             onChange={(e) => updateMed(i, 'durationDays', e.target.value)}
           />
-          <button type="button" onClick={() => removeMed(i)}>
+          <button type="button" className="btn-danger" onClick={() => removeMed(i)}>
             Remove
           </button>
         </div>
       ))}
-      <button type="button" onClick={addMed}>
+      <button type="button" className="btn-secondary" onClick={addMed}>
         + Add medication
       </button>
       {error && <p className="error">{error}</p>}
-      <button type="submit" disabled={busy}>
-        {busy ? 'Submitting…' : 'Submit visit note'}
-      </button>
+      <div className="card-actions">
+        <button type="submit" disabled={busy}>
+          {busy ? 'Submitting…' : 'Submit visit note'}
+        </button>
+      </div>
     </form>
   );
 }
+
+const URGENCY_CLASS = { Low: 'urgency-low', Medium: 'urgency-medium', High: 'urgency-high' };
 
 export function DoctorAppointments() {
   const [appointments, setAppointments] = useState([]);
@@ -112,22 +116,27 @@ export function DoctorAppointments() {
     <div>
       <h1>My appointments</h1>
       {error && <p className="error">{error}</p>}
+      {appointments.length === 0 && <p className="empty-state">No appointments scheduled.</p>}
       <ul className="list">
         {appointments.map((a) => (
           <li key={a.id} className="card">
-            <p>
-              <strong>{a.patient.name}</strong> — {new Date(a.slotStart).toLocaleString()}
-            </p>
-            <p>
-              Status: <span className={`status status-${a.status.toLowerCase()}`}>{a.status}</span>
-            </p>
+            <div className="appt-card-header">
+              <div>
+                <strong>{a.patient.name}</strong>
+              </div>
+              <span className={`status status-${a.status.toLowerCase()}`}>{a.status.replace(/_/g, ' ')}</span>
+            </div>
+            <p className="muted">{new Date(a.slotStart).toLocaleString()}</p>
             {a.symptomForm && (
               <div className="pre-visit-summary">
                 <strong>Pre-visit summary</strong>
                 {a.symptomForm.llmStatus === 'OK' ? (
                   <>
                     <p>
-                      Urgency: <strong>{a.symptomForm.urgency}</strong>
+                      Urgency:{' '}
+                      <span className={`urgency-badge ${URGENCY_CLASS[a.symptomForm.urgency] || ''}`}>
+                        {a.symptomForm.urgency}
+                      </span>
                     </p>
                     <p>Chief complaint: {a.symptomForm.chiefComplaint}</p>
                     <ul>
@@ -142,7 +151,9 @@ export function DoctorAppointments() {
               </div>
             )}
             {a.status === 'CONFIRMED' && activeVisitForm !== a.id && (
-              <button onClick={() => setActiveVisitForm(a.id)}>Complete visit</button>
+              <div className="card-actions">
+                <button onClick={() => setActiveVisitForm(a.id)}>Complete visit</button>
+              </div>
             )}
             {a.status === 'CONFIRMED' && activeVisitForm === a.id && (
               <VisitForm
